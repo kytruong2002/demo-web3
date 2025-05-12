@@ -37,6 +37,9 @@ export default function Navbar() {
         <li>
           <Link href="/swap">🔁 Swap</Link>
         </li>
+        <li>
+          <Link href="/nft">🎨 NFT</Link>
+        </li>
       </ul>
       {isConnected && (
         <div className="flex group relative items-center justify-end gap-2">
