@@ -5,7 +5,7 @@ import { bscTestnet, polygon, sepolia } from "viem/chains";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import StandardERC20ABI from "@/abi/StandardERC20ABI.json";
 
-const tokenAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const tokenAddress = "0x7ef95a0Fee0F8eA6f8e2E5C70bB3A26eF5cE95b6";
 
 const Balance = () => {
   const { address, isConnected } = useAccount();

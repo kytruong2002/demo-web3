@@ -34,7 +34,7 @@ const SendBNB = () => {
   );
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("");
-  const { data: balanceData } = useBalance({ address, chainId });
+  const { data: balanceData } = useBalance({ address });
 
   const checkNetwork = async () => {
     if (chainId !== bscTestnet.id) {
