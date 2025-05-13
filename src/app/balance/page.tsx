@@ -1,9 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits, erc20Abi } from "viem";
 import { bscTestnet, polygon, sepolia } from "viem/chains";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import StandardERC20ABI from "@/abi/StandardERC20ABI.json";
+
+const tokenAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
 const Balance = () => {
   const { address, isConnected } = useAccount();
@@ -17,14 +19,26 @@ const Balance = () => {
   } | null>(null);
 
   const { data: decimals } = useReadContract({
-    address: address,
+    address: tokenAddress,
     abi: StandardERC20ABI,
     functionName: "decimals",
     chainId: bscTestnet.id,
   });
 
+  const { data: nameERC20 } = useReadContract({
+    address: tokenAddress,
+    abi: erc20Abi,
+    functionName: "name",
+  });
+
+  const { data: symbolERC20 } = useReadContract({
+    address: tokenAddress,
+    abi: erc20Abi,
+    functionName: "symbol",
+  });
+
   const { data: rawBalance } = useReadContract({
-    address: address,
+    address: tokenAddress,
     abi: StandardERC20ABI,
     functionName: "balanceOf",
     args: [address!],
@@ -39,16 +53,20 @@ const Balance = () => {
   useEffect(() => {
     if (address && isConnected) {
       const getBalances = async () => {
-        const sepolia = await publicClientSepolia?.getBalance({ address });
-        const polygon = await publicClientPolygon?.getBalance({ address });
-        const bscTestnet = await publicClientBSCTestnet?.getBalance({
+        const sepoliaBalance = await publicClientSepolia?.getBalance({
+          address,
+        });
+        const polygonBalance = await publicClientPolygon?.getBalance({
+          address,
+        });
+        const bscTestnetBalance = await publicClientBSCTestnet?.getBalance({
           address,
         });
 
         setBalances({
-          sepolia: formatEther(sepolia as bigint),
-          polygon: formatEther(polygon as bigint),
-          bscTestnet: formatEther(bscTestnet as bigint),
+          sepolia: formatEther(sepoliaBalance as bigint),
+          polygon: formatEther(polygonBalance as bigint),
+          bscTestnet: formatEther(bscTestnetBalance as bigint),
         });
       };
       getBalances();
@@ -68,23 +86,31 @@ const Balance = () => {
       </h3>
       {isConnected && balances && (
         <div className="grid grid-cols-2 gap-4">
-          <p>Ethereum Balance:</p>
-          <p>{balances?.sepolia} SepoliaETH</p>
+          <p>{sepolia.nativeCurrency.name}:</p>
+          <p>
+            {balances?.sepolia} {sepolia.nativeCurrency.symbol}
+          </p>
 
-          <p>Binance Smart Chain (tBNB) Balance:</p>
-          <p>{balances?.bscTestnet} tBNB</p>
+          <p>{bscTestnet.nativeCurrency.name}:</p>
+          <p>
+            {balances?.bscTestnet} {bscTestnet.nativeCurrency.symbol}
+          </p>
 
-          <p>Polygon Balance:</p>
-          <p>{balances?.polygon} MATIC</p>
+          <p>{polygon.nativeCurrency.name}:</p>
+          <p>
+            {balances?.polygon} {polygon.nativeCurrency.symbol}
+          </p>
         </div>
       )}
       <h3 className="pb-4 uppercase font-bold mt-8">
         Token Balances (ERC-20 Token)
       </h3>
-      {isConnected && balanceToken && (
+      {isConnected && nameERC20 && (
         <div className="grid grid-cols-2 gap-4">
-          <p>Your Balance: </p>
-          <p>{balanceToken} USDT</p>
+          <p>{nameERC20}: </p>
+          <p>
+            {balanceToken} {symbolERC20}
+          </p>
         </div>
       )}
       {!isConnected && !address && <p>Please connect your wallet.</p>}

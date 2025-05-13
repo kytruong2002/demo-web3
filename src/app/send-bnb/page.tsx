@@ -2,16 +2,19 @@
 
 import { shortenAddress } from "@/helpers/functions";
 import React, { useState } from "react";
-import { formatEther, parseEther } from "viem";
+import { formatEther, isAddress, parseEther } from "viem";
 import { bscTestnet } from "viem/chains";
 import {
+  useAccount,
   useBalance,
   useChainId,
+  usePublicClient,
   useSendTransaction,
   useSwitchChain,
 } from "wagmi";
 
 const SendBNB = () => {
+  const { address } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction({
@@ -25,13 +28,15 @@ const SendBNB = () => {
       },
     },
   });
-
-  const [recipient, setRecipient] = useState("");
+  const publicClient = usePublicClient();
+  const [recipient, setRecipient] = useState(
+    "0x7CA3Bef3b65aF34Afb4C8e64551Fd55215D6EDBa"
+  );
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("");
-  const { data: balanceData } = useBalance();
+  const { data: balanceData } = useBalance({ address, chainId });
 
-  const handleSend = async () => {
+  const checkNetwork = async () => {
     if (chainId !== bscTestnet.id) {
       try {
         await switchChainAsync({ chainId: bscTestnet.id });
@@ -39,31 +44,71 @@ const SendBNB = () => {
         throw new Error("Failed to switch network");
       }
     }
+  };
+
+  const checkGas = async () => {
+    if (!recipient || !amount) {
+      setStatus("Please provide recipient and amount.");
+      return false;
+    }
+
+    try {
+      const gasPrice = (await publicClient?.getGasPrice()) as bigint;
+      const gasLimit = (await publicClient?.estimateGas({
+        to: recipient as `0x${string}`,
+        value: parseEther(amount),
+      })) as bigint;
+      const gasFee = gasPrice * gasLimit;
+
+      if (
+        parseEther(amount) + gasFee >
+        (balanceData ? balanceData.value : BigInt(0))
+      ) {
+        setStatus("Insufficient BNB balance.");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error estimating gas:", error);
+      setStatus("Error estimating gas.");
+      return false;
+    }
+  };
+
+  const handleSend = async () => {
+    await checkNetwork();
 
     if (chainId !== bscTestnet.id) {
       throw new Error("Wrong network");
     }
-    try {
-      if (!recipient || !amount) {
-        setStatus("Please provide recipient and amount.");
-        return;
-      }
 
-      const balance = parseFloat(formatEther(balanceData?.value || BigInt(0)));
-      const amountToSend = parseFloat(amount);
-      if (amountToSend > balance) {
-        setStatus("Insufficient BNB balance.");
-        return;
-      }
+    const hasSufficientBalance = await checkGas();
 
-      await sendTransactionAsync({
-        to: recipient as `0x${string}`,
-        value: parseEther(amount),
-      });
-    } catch (error) {
-      console.error(error);
-      setStatus("Error sending transaction.");
-    }
+    if (!hasSufficientBalance) return;
+
+    await sendTransactionAsync({
+      to: recipient as `0x${string}`,
+      value: parseEther(amount),
+    });
+  };
+
+  const handleChangeRecipient = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setRecipient(value);
+    if (!isAddress(value)) {
+      setStatus("Invalid recipient address.");
+    } else setStatus("");
+  };
+
+  const handleChangeAmount = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setAmount(value);
+    const balance = balanceData ? balanceData.value : BigInt(0);
+    if (isNaN(Number(value)) || Number(value) <= 0) {
+      setStatus("Invalid amount.");
+    } else if (Number(value) > +formatEther(balance)) {
+      setStatus("Insufficient BNB balance.");
+    } else setStatus("");
   };
 
   return (
@@ -73,14 +118,14 @@ const SendBNB = () => {
         type="text"
         placeholder="Recipient Address"
         value={recipient}
-        onChange={(e) => setRecipient(e.target.value)}
+        onChange={handleChangeRecipient}
         className="py-2 px-4 border border-gray-300 rounded mb-2 w-full"
       />
       <input
         type="text"
         placeholder="Amount (BNB)"
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChange={handleChangeAmount}
         className="py-2 px-4 border border-gray-300 rounded mb-2 w-full"
       />
       <button
