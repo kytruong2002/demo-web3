@@ -7,15 +7,13 @@ import { bscTestnet } from "viem/chains";
 import {
   useAccount,
   useBalance,
-  useChainId,
   usePublicClient,
   useSendTransaction,
   useSwitchChain,
 } from "wagmi";
 
 const SendBNB = () => {
-  const { address } = useAccount();
-  const chainId = useChainId();
+  const { address, chainId } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction({
     mutation: {
