@@ -14,7 +14,13 @@ import {
 
 const SendBNB = () => {
   const { address, chainId } = useAccount();
-  const { switchChainAsync } = useSwitchChain();
+  const { switchChainAsync } = useSwitchChain({
+    mutation: {
+      onSuccess: async () => {
+        await handleSend();
+      },
+    },
+  });
   const { sendTransactionAsync } = useSendTransaction({
     mutation: {
       onSuccess: (tx) => {
@@ -41,7 +47,7 @@ const SendBNB = () => {
       } catch {
         throw new Error("Failed to switch network");
       }
-    }
+    } else await handleSend();
   };
 
   const checkGas = async () => {
@@ -73,9 +79,7 @@ const SendBNB = () => {
     }
   };
 
-  const handleSend = async () => {
-    await checkNetwork();
-
+  async function handleSend() {
     if (chainId !== bscTestnet.id) {
       throw new Error("Wrong network");
     }
@@ -88,7 +92,7 @@ const SendBNB = () => {
       to: recipient as `0x${string}`,
       value: parseEther(amount),
     });
-  };
+  }
 
   const handleChangeRecipient = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -127,7 +131,7 @@ const SendBNB = () => {
         className="py-2 px-4 border border-gray-300 rounded mb-2 w-full"
       />
       <button
-        onClick={handleSend}
+        onClick={checkNetwork}
         className="text-lg py-3 mt-2 cursor-pointer text-white hover:opacity-85 duration-300 w-full bg-black"
       >
         Send
