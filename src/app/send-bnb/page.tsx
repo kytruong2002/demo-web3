@@ -3,24 +3,15 @@
 import { shortenAddress } from "@/helpers/functions";
 import React, { useState } from "react";
 import { formatEther, isAddress, parseEther } from "viem";
-import { bscTestnet } from "viem/chains";
 import {
   useAccount,
   useBalance,
   usePublicClient,
   useSendTransaction,
-  useSwitchChain,
 } from "wagmi";
 
 const SendBNB = () => {
-  const { address, chainId } = useAccount();
-  const { switchChainAsync } = useSwitchChain({
-    mutation: {
-      onSuccess: async () => {
-        await handleSend();
-      },
-    },
-  });
+  const { address } = useAccount();
   const { sendTransactionAsync } = useSendTransaction({
     mutation: {
       onSuccess: (tx) => {
@@ -39,16 +30,6 @@ const SendBNB = () => {
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("");
   const { data: balanceData } = useBalance({ address });
-
-  const checkNetwork = async () => {
-    if (chainId !== bscTestnet.id) {
-      try {
-        await switchChainAsync({ chainId: bscTestnet.id });
-      } catch {
-        throw new Error("Failed to switch network");
-      }
-    } else await handleSend();
-  };
 
   const checkGas = async () => {
     if (!recipient || !amount) {
@@ -80,10 +61,6 @@ const SendBNB = () => {
   };
 
   async function handleSend() {
-    if (chainId !== bscTestnet.id) {
-      throw new Error("Wrong network");
-    }
-
     const hasSufficientBalance = await checkGas();
 
     if (!hasSufficientBalance) return;
@@ -131,7 +108,7 @@ const SendBNB = () => {
         className="py-2 px-4 border border-gray-300 rounded mb-2 w-full"
       />
       <button
-        onClick={checkNetwork}
+        onClick={handleSend}
         className="text-lg py-3 mt-2 cursor-pointer text-white hover:opacity-85 duration-300 w-full bg-black"
       >
         Send
