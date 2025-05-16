@@ -102,7 +102,9 @@ const SendERC20 = () => {
     if (isNaN(Number(value)) || Number(value) <= 0) {
       setStatus("Invalid amount.");
     } else if (Number(value) > +formatEther(erc20Token)) {
-      setStatus("Insufficient MTK (ERC-20 token).");
+      setStatus(
+        `Insufficient ${balanceToken && balanceToken.symbol} (ERC-20 token).`
+      );
     } else setStatus("");
 
     if (recipient && !isNaN(Number(value)) && Number(value) > 0) {

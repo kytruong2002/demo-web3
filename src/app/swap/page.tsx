@@ -1,77 +1,35 @@
 // SwapComponent.tsx
-import React, { useState } from "react";
-import { parseUnits } from "viem";
-import {
-  useAccount,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  usePublicClient,
-} from "wagmi";
-import erc20Abi from "@/abis/erc20.json";
-import routerAbi from "./abis/uniswapRouter.json";
+"use client";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import PancakeRouterABI from "@/abi/PancakeRouterABI.json";
+import { useEffect, useState } from "react";
+import { parseEther } from "viem";
+import { config } from "@/libs/wagmi";
+
+const routerAddress = process.env.NEXT_PUBLIC_SWAP_ROUTER as `0x${string}`; // PancakeSwap V2 Router (BNB Testnet)
+const tokenAddress = process.env.NEXT_PUBLIC_ERC20_ADDRESS as `0x${string}`; // Token bạn muốn nhận
+const WBNBAddress = process.env.NEXT_PUBLIC_WBNB_ADDRESS as `0x${string}`; // WBNB Testnet
+const USDTAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS as `0x${string}`; // USDT Testnet
 
 const Swap = () => {
+  const publicCloient = usePublicClient();
+  const [ampountIn, setAmountIn] = useState("0.001");
   const { address } = useAccount();
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
 
-  const [txHash, setTxHash] = useState<string | null>(null);
-
-  // 🪙 Token địa chỉ (Ethereum mainnet)
-  const usdt = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // tokenIn
-  const dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F"; // tokenOut
-  const router = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"; // Uniswap V2 Router (ví dụ)
-
-  // 🧮 Số lượng swap
-  const amountIn = parseUnits("100", 6); // 100 USDT (6 decimals)
-  const amountOutMin = BigInt(0); // không slippage (test thôi)
-
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20); // 20 phút
-
-  const swapTokens = async () => {
-    try {
-      // 1. ✅ Approve router được dùng USDT
-      const approveTx = await writeContractAsync({
-        address: usdt,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [router, amountIn],
-      });
-
-      console.log("Approved tx:", approveTx);
-
-      // 2. ⏳ Đợi approve xong (tùy bạn có thể skip)
-      await publicClient.waitForTransactionReceipt({ hash: approveTx });
-
-      // 3. 🚀 Gọi swap
-      const swapTx = await writeContractAsync({
-        address: router,
-        abi: routerAbi,
-        functionName: "swapExactTokensForTokens",
-        args: [amountIn, amountOutMin, [usdt, dai], address!, deadline],
-      });
-
-      setTxHash(swapTx);
-      console.log("Swap tx:", swapTx);
-    } catch (err) {
-      console.error("Swap error:", err);
-    }
+  const handleSwap = async () => {
+    const commands = new Uint8Array([1]);
+    const amountOutMin = 0;
+    const path = [WBNBAddress, USDTAddress];
+    const to = address!;
+    const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
   };
 
   return (
     <div className="p-4 border rounded">
-      <h2 className="font-bold text-lg mb-2">Swap USDT → DAI</h2>
-      <button
-        onClick={swapTokens}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-      >
-        Swap 100 USDT
+      <h2 className="font-bold text-lg mb-2">Swap BNB → ERC20</h2>
+      <button className="bg-blue-500 text-white px-4 py-2 rounded">
+        Swap BNB
       </button>
-      {txHash && (
-        <p className="mt-2 text-sm text-green-600">
-          Giao dịch đã gửi: {txHash.slice(0, 10)}...
-        </p>
-      )}
     </div>
   );
 };
